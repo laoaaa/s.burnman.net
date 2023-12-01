@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>写</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        #editor {
+            width: 70%;
+            height: 300px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 13px;
+            overflow: auto;
+        }
+        #filename {
+            width: 60%;
+            margin-top: 10px;
+            padding: 12px; /* 增加内边距 */
+            font-size: 16px; /* 增加字体大小 */
+        }
+        #saveButton {
+            padding: 15px 25px; /* 增加按钮大小 */
+            margin-top: 10px;
+            font-size: 16px; /* 增加字体大小 */
+        }
+
+        /* 响应式设计调整 */
+        @media (max-width: 600px) {
+            #editor {
+                width: 90%; /* 在小屏幕上增加宽度 */
+                height: 200px; /* 减小高度以适应屏幕 */
+            }
+            #filename, #saveButton {
+                width: 80%; /* 调整输入框和按钮宽度 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="editor" contenteditable="true"></div>
+    <input id="filename" type="text" placeholder="文件名">
+    <button id="saveButton" onclick="saveTextAsFile()">存</button>
+    <script>
+        function saveTextAsFile() {
+            var textToWrite = document.getElementById("editor").innerText;
+            var fileNameToSaveAs = document.getElementById("filename").value;
+
+            if (!fileNameToSaveAs) {
+                alert('文件名');
+                return;
+            }
+
+            var textFileAsBlob = new Blob([textToWrite], {type: 'text/plain;charset=UTF-8'});
+            var downloadLink = document.createElement("a");
+            downloadLink.download = fileNameToSaveAs;
+            downloadLink.innerHTML = "Download File";
+            if (window.webkitURL != null) {
+                downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+            } else {
+                downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
+                downloadLink.style.display = "none";
+                document.body.appendChild(downloadLink);
+            }
+
+            downloadLink.click();
+        }
+
+        window.onbeforeunload = function(e) {
+            return 'Are you sure you want to leave? Make sure to save your document.';
+        };
+    </script>
+</body>
+</html>
