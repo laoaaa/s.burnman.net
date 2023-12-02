@@ -10,14 +10,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
+            justify-content: flex-start; /* 改为flex-start，以允许内容向下拓展 */
+            min-height: 100vh; /* 最小高度为视窗高度 */
         }
         #editor {
             width: 60%;
             height: 500px;
             border: 1px solid #ddd;
-            margin-top: 15px;
+            margin-top: 20px;
             padding: 10px;
             font-size: 15px;
             overflow: auto;
@@ -30,14 +30,34 @@
             padding: 10px 20px;
             margin-top: 20px;
         }
+        #savedItems {
+            width: 60%; /* 与编辑器同宽 */
+            margin-top: 20px;
+            text-align: center;
+        }
+        .savedItem {
+            font-size: 10px;
+            color: gray;
+            text-decoration: none;
+            display: inline;
+            margin: 5px 0;
+        }
+        .actionButton {
+            font-size: 10px;
+            color: red;
+            margin-left: 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="editor" contenteditable="true"></div>
     <input id="filename" type="text" placeholder=" ~ universe peace ~">
-    <button id="saveButton" onclick="saveTextAsFile()">save</button>
+    <button id="saveButton" onclick="saveText()">safe</button>
+    <div id="savedItems"></div>
+
     <script>
-        function saveTextAsFile() {
+        function saveText() {
             var textToWrite = document.getElementById("editor").innerText;
             var fileNameToSaveAs = document.getElementById("filename").value;
 
@@ -46,24 +66,74 @@
                 return;
             }
 
-            var textFileAsBlob = new Blob([textToWrite], {type: 'text/plain;charset=UTF-8'});
-            var downloadLink = document.createElement("a");
-            downloadLink.download = fileNameToSaveAs;
-            downloadLink.innerHTML = "Download File";
-            if (window.webkitURL != null) {
-                downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
-            } else {
-                downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
-                downloadLink.style.display = "none";
-                document.body.appendChild(downloadLink);
-            }
+            localStorage.setItem(fileNameToSaveAs, textToWrite);
+            updateSavedItemsList();
+        }
 
+        function updateSavedItemsList() {
+            var savedItems = document.getElementById('savedItems');
+            savedItems.innerHTML = '';
+
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                var itemDiv = document.createElement('div');
+
+                var link = document.createElement('a');
+                link.href = '#';
+                link.className = 'savedItem';
+                link.innerText = key;
+                link.onclick = function() { loadText(this.innerText); };
+                itemDiv.appendChild(link);
+
+                var deleteBtn = document.createElement('span');
+                deleteBtn.className = 'actionButton';
+                deleteBtn.innerText = 'fade';
+                deleteBtn.onclick = function() { deleteText(key); };
+                itemDiv.appendChild(deleteBtn);
+
+                var saveTxtBtn = document.createElement('span');
+                saveTxtBtn.className = 'actionButton';
+                saveTxtBtn.innerText = 'save';
+                saveTxtBtn.onclick = function() { saveTextAsTxt(key); };
+                itemDiv.appendChild(saveTxtBtn);
+
+                savedItems.appendChild(itemDiv);
+            }
+        }
+
+        function loadText(key) {
+            var text = localStorage.getItem(key);
+            document.getElementById('editor').innerText = text;
+            document.getElementById('filename').value = key;
+        }
+
+        function deleteText(key) {
+            localStorage.removeItem(key);
+            updateSavedItemsList();
+        }
+
+        function saveTextAsTxt(key) {
+            var text = localStorage.getItem(key);
+            var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            var downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = key + '.txt';
+            document.body.appendChild(downloadLink);
             downloadLink.click();
+            document.body.removeChild(downloadLink);
         }
 
         window.onbeforeunload = function(e) {
             return 'Are you sure you want to leave? Make sure to save your document.';
         };
+
+        document.getElementById('editor').addEventListener('paste', function(e) {
+            e.preventDefault();
+            var text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        });
+
+        updateSavedItemsList();
     </script>
 </body>
 </html>
