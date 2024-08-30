@@ -25,10 +25,18 @@
         #filename {
             width: 155px;
             margin-top: 20px;
+       }
+        #buttonContainer {
+            display: flex;
+            justify-content: center; /* 水平居中对齐 */
+            gap: 10px; /* 按钮之间的间距 */
+            margin-top: 20px; /* 顶部外边距 */
         }
-        #saveButton {
+        #saveButton, #warnButton {
             padding: 10px 20px;
-            margin-top: 20px;
+            width: 100px; /* 设置相同的宽度 */
+            height: 40px; /* 设置相同的高度 */
+            font-size: 16px; /* 确保文字大小一致 */
         }
         #savedItems {
             width: 60%; /* 与编辑器同宽 */
@@ -53,7 +61,10 @@
 <body>
     <div id="editor" contenteditable="true"></div>
     <input id="filename" type="text" placeholder=" ~ universe peace ~">
-    <button id="saveButton" onclick="saveText()">safe</button>
+   <div id="buttonContainer">
+        <button id="saveButton" onclick="saveText()">safe</button>
+        <button id="warnButton" onclick="warnText()">warn</button>
+    </div>
     <div id="savedItems"></div>
 
     <script>
@@ -70,36 +81,103 @@
             updateSavedItemsList();
         }
 
-        function updateSavedItemsList() {
-            var savedItems = document.getElementById('savedItems');
-            savedItems.innerHTML = '';
+       function warnText() {
+    var fileNameToDelete = document.getElementById("filename").value;
 
-            for (var i = 0; i < localStorage.length; i++) {
-                var key = localStorage.key(i);
-                var itemDiv = document.createElement('div');
+    if (!fileNameToDelete) {
+        alert('请先选择一个文件或输入一个文件名。');
+        return;
+    }
 
-                var link = document.createElement('a');
-                link.href = '#';
-                link.className = 'savedItem';
-                link.innerText = key;
-                link.onclick = function() { loadText(this.innerText); };
-                itemDiv.appendChild(link);
+    if (localStorage.getItem(fileNameToDelete)) {
+        localStorage.removeItem(fileNameToDelete);
+        alert('文件 "' + fileNameToDelete + '" 已删除。');
+        updateSavedItemsList();
+        document.getElementById('editor').innerText = '';  // 清空编辑器
+        document.getElementById('filename').value = '';    // 清空文件名输入框
+    } else {
+        alert('没有找到文件 "' + fileNameToDelete + '"。');
+}
 
-                var deleteBtn = document.createElement('span');
-                deleteBtn.className = 'actionButton';
-                deleteBtn.innerText = 'warp';
-                deleteBtn.onclick = function() { deleteText(key); };
-                itemDiv.appendChild(deleteBtn);
-
-                var saveTxtBtn = document.createElement('span');
-                saveTxtBtn.className = 'actionButton';
-                saveTxtBtn.innerText = 'save';
-                saveTxtBtn.onclick = function() { saveTextAsTxt(key); };
-                itemDiv.appendChild(saveTxtBtn);
-
-                savedItems.appendChild(itemDiv);
-            }
         }
+
+       function updateSavedItemsList() {
+    var savedItems = document.getElementById('savedItems');
+    savedItems.innerHTML = '';
+
+    // 获取所有键并进行排序
+    var keys = [];
+    for (var i = 0; i < localStorage.length; i++) {
+        keys.push(localStorage.key(i));
+    }
+
+    // 排序：阿拉伯数字第一、非汉字字符第二、汉字字符第三
+    keys.sort(function(a, b) {
+        var isDigitA = /^[0-9]/.test(a);
+        var isDigitB = /^[0-9]/.test(b);
+        var isNonChineseA = /^[^\u4e00-\u9fa5]/.test(a);
+        var isNonChineseB = /^[^\u4e00-\u9fa5]/.test(b);
+
+        if (isDigitA && !isDigitB) return -1;
+        if (!isDigitA && isDigitB) return 1;
+        if (isDigitA && isDigitB) return a.localeCompare(b);
+
+        if (isNonChineseA && !isNonChineseB) return -1;
+        if (!isNonChineseA && isNonChineseB) return 1;
+        if (isNonChineseA && isNonChineseB) return a.localeCompare(b);
+
+        return a.localeCompare(b);
+    });
+
+    // 按排序后的顺序生成列表
+    keys.forEach(function(key, index) {
+        var itemDiv = document.createElement('div');
+
+        var link = document.createElement('a');
+        link.href = '#';
+        link.className = 'savedItem';
+        link.innerText = key;
+        link.onclick = function() { loadText(this.innerText); };
+        itemDiv.appendChild(link);
+
+        var saveTxtBtn = document.createElement('span');
+        saveTxtBtn.className = 'actionButton';
+        saveTxtBtn.innerText = 'save';
+        saveTxtBtn.onclick = function() { saveTextAsTxt(key); };
+        itemDiv.appendChild(saveTxtBtn);
+
+        // 添加 "save all" 按钮，只在第一条记录中显示
+        if (index === 0) {
+            var saveAllBtn = document.createElement('span');
+            saveAllBtn.className = 'actionButton';
+            saveAllBtn.innerText = 'save all';
+            saveAllBtn.onclick = saveAllText;
+            itemDiv.appendChild(saveAllBtn);
+        }
+
+        savedItems.appendChild(itemDiv);
+    });
+}
+
+function saveAllText() {
+    var allContent = '';
+
+    // 获取所有缓存项的内容及标题
+    for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        var content = localStorage.getItem(key);
+        allContent += 'Title: ' + key + '\n' + content + '\n\n'; // 格式化输出
+    }
+
+    // 创建并下载文本文件
+    var blob = new Blob([allContent], { type: 'text/plain;charset=utf-8' });
+    var downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = 'all_saved_texts.txt'; // 保存文件名
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
 
         function loadText(key) {
             var text = localStorage.getItem(key);
