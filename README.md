@@ -30,6 +30,6 @@
 
 *
 
-http://xie.burnman.net/
+http://s.burnman.net/
 
 *
